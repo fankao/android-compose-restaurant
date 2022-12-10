@@ -3,7 +3,8 @@ package com.example.android_compose_restaurant
 
 data class Restaurant(val id: Int,
                       val title: String,
-                      val description: String)
+                      val description: String,
+                      var isFavorite: Boolean = false)
 val dummyRestaurants = listOf(
     Restaurant(0, "Alfredo's dishes", "At Alfredo's, we provide the best seafood dishes."),
     Restaurant(1, "Jamie's burgers", "At Jamie's, we serve the best meat and vegan burgers!"),
