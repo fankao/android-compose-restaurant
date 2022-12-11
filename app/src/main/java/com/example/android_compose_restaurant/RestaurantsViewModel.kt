@@ -5,14 +5,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.net.ConnectException
+import java.net.UnknownHostException
 
 class RestaurantsViewModel(private val stateHandle: SavedStateHandle) : ViewModel() {
     private var restInterface: RestaurantsApiService
+    private var restaurantDao = RestaurantsDb.getDaoInstance(RestaurantsApplication.getAppContext())
     val state = mutableStateOf(emptyList<Restaurant>())
     private val errorHandler = CoroutineExceptionHandler{
             _,exception -> exception.printStackTrace()
@@ -27,14 +28,26 @@ class RestaurantsViewModel(private val stateHandle: SavedStateHandle) : ViewMode
         restInterface = retrofit.create(RestaurantsApiService::class.java)
         getRestaurants()
     }
+
     fun toggleFavorite(id: Int) {
         val restaurants = state.value.toMutableList();
         val itemIndex = restaurants.indexOfFirst { it.id == id }
         val item = restaurants[itemIndex]
         restaurants[itemIndex] = item.copy(isFavorite = !item.isFavorite)
         storeSelection(restaurants[itemIndex])
-        state.value = restaurants
+        viewModelScope.launch(errorHandler) {
+            val updateRestaurants = toggleFavoriteRestaurant(id, item.isFavorite)
+            state.value = restaurants
+        }
     }
+
+    private suspend fun toggleFavoriteRestaurant(id: Int, oldValue: Boolean) =
+        withContext(Dispatchers.IO) {
+            restaurantDao.update(
+                PartialRestaurant(id = id, isFavorite = !oldValue)
+            )
+            restaurantDao.getAll()
+        }
 
 
     /**
@@ -61,14 +74,42 @@ class RestaurantsViewModel(private val stateHandle: SavedStateHandle) : ViewMode
      */
     private fun getRestaurants() {
         viewModelScope.launch(errorHandler) {
-            val restaurants = getRemoteRestaurants()
+            val restaurants = getAllRestaurants()
             state.value = restaurants.restoreSelections()
         }
     }
-    private suspend fun getRemoteRestaurants(): List<Restaurant>{
-        return withContext(Dispatchers.IO){
-            restInterface.getRestaurants()
+    private suspend fun getAllRestaurants(): List<Restaurant> {
+        return withContext(Dispatchers.IO) {
+            try {
+                refreshCache()
+            } catch (e: Exception) {
+                when (e) {
+                    is UnknownHostException,
+                    is ConnectException,
+                    is HttpException -> {
+                        if (restaurantDao.getAll().isEmpty()) {
+                            throw Exception(
+                                "Something went wrong. " +
+                                        "We have no data"
+                            )
+                        }
+                    }
+                    else -> throw e
+                }
+            }
+            return@withContext restaurantDao.getAll()
         }
+    }
+
+    private suspend fun refreshCache() {
+        var remoteRestaurants = restInterface.getRestaurants()
+        val favoriteRestaurants = restaurantDao.getAllFavorited()
+        restaurantDao.addAll(remoteRestaurants)
+        restaurantDao.updateAll(
+            favoriteRestaurants.map{
+                PartialRestaurant(it.id,true)
+            }
+        )
     }
 
     private fun storeSelection(restaurant: Restaurant) {
@@ -99,9 +140,10 @@ class RestaurantsViewModel(private val stateHandle: SavedStateHandle) : ViewMode
      */
     private fun List<Restaurant>.restoreSelections(): List<Restaurant> {
         stateHandle.get<List<Int>?>(FAVORITES)?.let { selectedIds ->
-            val restaurantsMap = this.associateBy { it.id }
+            val restaurantsMap = this.associateBy { it.id }.toMutableMap()
             selectedIds.forEach { id ->
-                restaurantsMap[id]?.isFavorite = true
+                val restaurant = restaurantsMap[id] ?: return@forEach
+                restaurantsMap[id] = restaurant.copy(isFavorite = true)
             }
             return restaurantsMap.values.toList()
         }
