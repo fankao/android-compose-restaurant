@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.example.android_compose_restaurant.ui.theme.RestaurantsAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -35,6 +36,9 @@ class MainActivity : ComponentActivity() {
                 arguments =
                 listOf(navArgument("restaurant_id") {
                     type = NavType.IntType
+                }),
+                deepLinks = listOf(navDeepLink {
+                    uriPattern = "www.restaurantsapp.details.com/{restaurant_id}"
                 })
             ) { navStackEntry ->
                 val id = navStackEntry.arguments?.getInt("restaurant_id")
