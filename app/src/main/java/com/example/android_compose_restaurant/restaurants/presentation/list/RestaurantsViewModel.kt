@@ -4,15 +4,17 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.android_compose_restaurant.restaurants.data.RestaurantsRepository
 import com.example.android_compose_restaurant.restaurants.domain.GetInitialRestaurantsUseCase
 import com.example.android_compose_restaurant.restaurants.domain.ToggleRestaurantUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
+import javax.inject.Inject
 
-class RestaurantsViewModel() : ViewModel() {
-    private val repository = RestaurantsRepository()
-    private val getInitialRestaurantsUseCase= GetInitialRestaurantsUseCase()
-    private val toggleRestaurantUseCase = ToggleRestaurantUseCase()
+@HiltViewModel
+class RestaurantsViewModel @Inject constructor(
+    private val getRestaurantsUseCase: GetInitialRestaurantsUseCase,
+    private val toggleRestaurantUseCase: ToggleRestaurantUseCase,
+) : ViewModel() {
     private val _state = mutableStateOf(
         RestaurantsScreenState(
             restaurants = listOf(),
@@ -33,7 +35,7 @@ class RestaurantsViewModel() : ViewModel() {
 
     private fun getRestaurants() {
         viewModelScope.launch(errorHandler) {
-            val restaurants = getInitialRestaurantsUseCase()
+            val restaurants = getRestaurantsUseCase()
             _state.value = _state.value.copy(
                 restaurants = restaurants,
                 isLoading = false
