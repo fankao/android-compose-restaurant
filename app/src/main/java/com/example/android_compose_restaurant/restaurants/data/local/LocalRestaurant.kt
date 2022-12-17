@@ -1,4 +1,4 @@
-package com.example.android_compose_restaurant
+package com.example.android_compose_restaurant.restaurants.data.local
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 
 @Entity(tableName = "restaurants")
-data class Restaurant(
+data class LocalRestaurant(
     @PrimaryKey()
     @ColumnInfo(name = "r_id")
     @SerializedName("r_id")

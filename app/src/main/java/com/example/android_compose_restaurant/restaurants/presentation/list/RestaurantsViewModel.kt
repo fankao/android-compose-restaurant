@@ -1,13 +1,18 @@
-package com.example.android_compose_restaurant
+package com.example.android_compose_restaurant.restaurants.presentation.list
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.android_compose_restaurant.restaurants.data.RestaurantsRepository
+import com.example.android_compose_restaurant.restaurants.domain.GetInitialRestaurantsUseCase
+import com.example.android_compose_restaurant.restaurants.domain.ToggleRestaurantUseCase
 import kotlinx.coroutines.*
 
 class RestaurantsViewModel() : ViewModel() {
     private val repository = RestaurantsRepository()
+    private val getInitialRestaurantsUseCase= GetInitialRestaurantsUseCase()
+    private val toggleRestaurantUseCase = ToggleRestaurantUseCase()
     private val _state = mutableStateOf(
         RestaurantsScreenState(
             restaurants = listOf(),
@@ -28,7 +33,7 @@ class RestaurantsViewModel() : ViewModel() {
 
     private fun getRestaurants() {
         viewModelScope.launch(errorHandler) {
-            val restaurants = repository.getAllRestaurants()
+            val restaurants = getInitialRestaurantsUseCase()
             _state.value = _state.value.copy(
                 restaurants = restaurants,
                 isLoading = false
@@ -38,7 +43,7 @@ class RestaurantsViewModel() : ViewModel() {
 
     fun toggleFavorite(id: Int, oldValue: Boolean) {
         viewModelScope.launch(errorHandler) {
-            val updateRestaurants = repository.toggleFavoriteRestaurant(id, oldValue)
+            val updateRestaurants =toggleRestaurantUseCase(id,oldValue)
             _state.value = _state.value.copy(
                 restaurants = updateRestaurants
             )

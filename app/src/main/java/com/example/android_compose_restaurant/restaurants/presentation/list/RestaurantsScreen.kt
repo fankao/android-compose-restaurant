@@ -1,4 +1,4 @@
-package com.example.android_compose_restaurant
+package com.example.android_compose_restaurant.restaurants.presentation.list
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -18,11 +18,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.android_compose_restaurant.restaurants.domain.Restaurant
 import com.example.android_compose_restaurant.ui.theme.RestaurantsAppTheme
 
 @Composable
 fun RestaurantsScreen(
-    onItemClick: (id: Int) -> Unit = {}
+    state: RestaurantsScreenState,
+    onItemClick: (id: Int) -> Unit = {},
+    onFavoriteClick: (id: Int, oldValue: Boolean) -> Unit
 ) {
     val viewModel: RestaurantsViewModel = viewModel()
     val state = viewModel.state.value
@@ -39,7 +42,7 @@ fun RestaurantsScreen(
             items(state.restaurants) { restaurant ->
                 RestaurantItem(
                     restaurant,
-                    onFavoriteClick = { id, oldValue -> viewModel.toggleFavorite(id, oldValue) },
+                    onFavoriteClick = { id, oldValue -> onFavoriteClick(id,oldValue) },
                     onItemClick = { id -> onItemClick(id) })
             }
         }
@@ -135,6 +138,10 @@ fun RestaurantIcon(
 @Composable
 fun DefaultPreview() {
     RestaurantsAppTheme {
-        RestaurantsScreen()
+        RestaurantsScreen(
+            RestaurantsScreenState(listOf(), true),
+            {},
+            { _, _ -> }
+        )
     }
 }
