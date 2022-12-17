@@ -1,9 +1,11 @@
-package com.example.android_compose_restaurant
+package com.example.android_compose_restaurant.restaurants.presentation.details
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.android_compose_restaurant.restaurants.data.remote.RestaurantsApiService
+import com.example.android_compose_restaurant.restaurants.domain.Restaurant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -32,8 +34,14 @@ class RestaurantDetailsViewModel(
 
     private suspend fun getRemoteRestaurant(id: Int): Restaurant {
         return withContext(Dispatchers.IO) {
-            val responseMap = restInterface.getRestaurant(id)
-            return@withContext responseMap.values.first()
+            val response = restInterface.getRestaurant(id)
+            return@withContext response.values.first().let {
+                Restaurant(
+                    id = it.id,
+                    title = it.title,
+                    description = it.description
+                )
+            }
         }
     }
 }
